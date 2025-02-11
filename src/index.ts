@@ -1,20 +1,31 @@
-import { AppDataSource } from "./data-source"
-import { User } from "./entity/User"
+import { AppDataSource } from "./data-source";
+import * as express from "express";
+import * as dotenv from "dotenv";
+import { Request, Response } from "express";
+import { userRouter} from "./routes/user.routes";
+import { movieRouter} from "./routes/movie.routes";
+import "reflect-metadata";
+import { error } from "console";
 
-AppDataSource.initialize().then(async () => {
+dotenv.config()
 
-    console.log("Inserting a new user into the database...")
-    const user = new User()
-    user.firstName = "Timber"
-    user.lastName = "Saw"
-    user.age = 25
-    await AppDataSource.manager.save(user)
-    console.log("Saved a new user with id: " + user.id)
+const app = express();
+app.use(express.json());
+app.use(errorHandler);
 
-    console.log("Loading users from the database...")
-    const users = await AppDataSource.manager.find(User)
-    console.log("Loaded users: ", users)
+const {PORT = 3000 } = process.env;
+app.use("/auth", userRouter);
+app.use("/api", movieRouter);
 
-    console.log("Here you can setup and run express / fastify / any other framework.")
+app.get("*", (req: Request, res: Response) => {
+    res.status(505).json({ message: "Bad Request" });
+});
 
-}).catch(error => console.log(error))
+AppDataSource.initialize()
+    .then(async () => {
+        app.listen(PORT, ()=> {
+            console.log(`Server is running on http://localhost: ${PORT} `);
+        });
+        console.log("Data Source has been inited!");
+    })
+    .catch((error) => console.log(error));
